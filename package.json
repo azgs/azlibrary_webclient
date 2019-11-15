@@ -1,0 +1,28 @@
+{
+  "name": "azlibrary_webclient",
+  "version": "0.0.1",
+  "description": "client for azlibrary_api",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azgs/azlibrary_webclient.git"
+  },
+  "author": "Douglas Meredith",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/azgs/azlibrary_webclient/issues"
+  },
+  "homepage": "https://github.com/azgs/azlibrary_webclient#readme",
+  "dependencies": {
+    "commander": "^4.0.1",
+    "ejs": "^2.7.1",
+    "express": "^4.17.1",
+    "fs-extra": "^8.1.0",
+    "morgan": "^1.9.1",
+    "serve-favicon": "^2.5.0",
+    "winston": "^3.2.1"
+  }
+}

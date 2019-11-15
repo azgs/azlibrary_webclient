@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Simple Collection Upload Example</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+		<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+		<script src="https://unpkg.com/vue-spinners@1.0.2/dist/vue-spinners.browser.js"></script>
+  		<link rel="stylesheet" href="https://unpkg.com/vue-spinners@1.0.2/dist/vue-spinners.css">
+		<style>
+			.formField{
+				margin-bottom:10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app">
+			<div v-if="showForm && !working">
+				<h1>{{ title }}</h1>
+				<h4 style="margin-bottom: 20px">Note: sanity checking of values entered below is not yet implemented</h4>
+
+				<form>
+
+					<input type="radio" id="create" value="Create" v-model="mode" @change="resetForm($event)">
+					<label for="one">Create</label>
+					<br>
+					<input type="radio" id="patch" value="Patch" v-model="mode" @change="resetForm($event)">
+					<label for="two">Patch</label>
+					<span style="font-size:small;">(to modify the collection without changing its id)</span>
+					<br>
+					<input type="radio" id="replace" value="Replace" v-model="mode" @change="resetForm($event)">
+					<label for="two">Replace</label>
+					<span style="font-size:small;">(to create a new collection, with new id, that supercedes the old one)</span>
+					<br>
+					<input type="radio" id="remove" value="Remove" v-model="mode" @change="resetForm($event)">
+					<label for="two">Remove</label>
+					<span style="font-size:small;">(to remove a collection)</span>
+					<br>
+
+					<div v-if="mode==='Remove'" style="margin-top: 30px; margin-bottom: 50px;">
+						<span class="formField">
+							<label for="collectionID">Remove existing collection:</label><br/>
+							<input id="collectionID" v-model="metadata.identifiers.perm_id">
+						</span>
+					</div>
+					<div v-else>
+
+						<div v-if="mode==='Patch' || mode==='Replace'" style="margin-top: 30px; margin-bottom: 50px;">
+							<span class="formField">
+								<label for="collectionID">Modify existing collection:</label><br/>
+								<input id="collectionID" v-model="metadata.identifiers.perm_id">
+							</span>
+							<span class="formField">
+								<input type="button" id="Load" value="Load" @click="loadExisting" :disabled="!metadata.identifiers.perm_id">
+							</span>
+							<span class="formField">
+								<input type="button" id="Clear" value="Clear" @click="resetForm" :disabled="!metadata.identifiers.perm_id">
+							</span>
+							<div v-if="loadExistingError" style="font-size: small; color:red;">
+								{{ loadExistingError }}
+							</div>
+						</div>
+
+						<h2 style="margin-top: 50px;">Metadata</h2>
+
+						<div class="formField">
+							<label for="title">Title</label><br/>
+							<input id="title" v-model="metadata.title">
+						</div>
+
+						<div class="formField">
+							<div>Authors (check box to remove)</div>
+							<div v-for="author in metadata.authors" :key="author.person" style="margin-left: 20px;" >
+								<span>{{ author.person }}, {{ author.givenname }}, {{ author.surname }}, {{ author.organization }}</span>
+								<input type="checkbox" @change="authorRemoved(author)">
+							</div>
+
+							<div  style="margin-top: 10px; margin-left: 20px">
+								<input  id="authorPerson"  name="authorPerson"  v-model="newAuthorPerson" />
+								<label for="authorPerson">Person</label><br/>
+								<input  id="authorGivenname"  name="authorGivenname"  v-model="newAuthorGivenname" />
+								<label for="authorGivenname">Given name</label><br/>
+								<input  id="authorSurname"  name="authorSurname"  v-model="newAuthorSurname" />
+								<label for="authorSurname">Surname</label><br/>
+								<input  id="authorOrganization"  name="authorOrganization"  v-model="newAuthorOrganization" />
+								<label for="authorOrganization">Organization</label><br/>
+								<input type="button" value="Add author" @click="addAuthor($event)" :disabled="!newAuthorPerson && !newAuthorGivenname && !newAuthorSurname && !newAuthorOrganization"/>							
+							</div>
+						</div>
+
+						<div class="formField">
+							<label for="year">Year</label><br/>
+							<input id="year" v-model="metadata.year">
+						</div>
+	
+						<div class="formField">
+							<label for="cgroup">Collection group</label><br/>
+							<select id="cgroup"  name="cgroup" v-model="metadata.collection_group.name">
+								<option v-for="cG in collectionGroups" v-bind:value="cG.name">
+									{{ cG.name }}
+								</option>
+							</select>						
+						</div>
+
+						<div class="formField">
+							Journal
+							<div style="margin-left:20px">
+								<input id="journalName" v-model="metadata.journal.name">
+								<label for="journalName">Name</label>
+							</div>
+							<div style="margin-left:20px">
+								<input id="journalPub" v-model="metadata.journal.publisher">
+								<label for="journalPub">Publisher</label>
+							</div>
+							<div style="margin-left:20px">
+								<input id="journalURL" type="url" v-model="metadata.journal.url">
+								<label for="journalURL">URL</label>
+							</div>
+						</div>
+
+						<div class="formField">
+							<label for="series">Series</label><br/>
+							<input id="series" v-model="metadata.series">
+						</div>
+
+						<div class="formField">
+							<label for="abstract">Abstract</label><br/>
+							<textarea id="abstract" v-model="metadata.abstract"rows="10" cols="60"></textarea>
+						</div>
+
+						<div class="formField">
+							<label for="informalName">Informal name</label><br/>
+							<input id="informalName" v-model="metadata.informal_name">
+						</div>
+
+						<div class="formField">
+							<div>Links (check box to remove)</div>
+							<div v-for="link in metadata.links" :key="link.url" style="margin-left: 20px;" >
+								<span>{{ link.name }}, {{ link.url }}</span>
+								<input type="checkbox" @change="linkRemoved(link)">
+							</div>
+
+							<div  style="margin-top: 10px; margin-left: 20px">
+								<input  id="linkName"  name="linkName"  v-model="newLinkName" />
+								<label for="linkName">Name</label><br/>
+								<input  id="linkURL"  name="linkURL"  v-model="newLinkURL" />
+								<label for="linkURL">URL</label><br/>
+								<input type="button" value="Add link" @click="addLink($event)" :disabled="newLinkName === null || newLinkURL === null"/>							
+							</div>
+						</div>
+
+						<div class="formField">
+							<div>Keywords (check box to remove)</div>
+							<div v-for="keyword in metadata.keywords" :key="keyword.name" style="margin-left: 20px;" >
+								<span>{{ keyword.name }}, {{ keyword.type }}</span>
+								<input type="checkbox" @change="keywordRemoved(keyword)">
+							</div>
+
+							<div  style="margin-top: 10px; margin-left: 20px">
+								<input  id="keywordName"  name="keywordName"  v-model="newKeywordName" />
+								<label for="keywordName">Name</label><br/>
+								<select id="keywordType"  name="keywordType" v-model="newKeywordType">
+									<option v-for="type in keywordTypes" v-bind:value="type">
+										{{ type }}
+									</option>
+								</select>						
+								<label for="keywordType">Type</label><br/>
+								<input type="button" value="Add keyword" @click="addKeyword($event)" :disabled="newKeywordName === null || newKeywordType === null"/>							
+							</div>
+						</div>
+
+						<div class="formField">
+							<label for="language">Language</label><br/>
+							<input id="language" v-model="metadata.language">
+						</div>
+
+						<div class="formField">
+							License
+							<div style="margin-left:20px">
+								<input id="licenseType" v-model="metadata.license.type">
+								<label for="licenseType">Type</label>
+							</div>
+							<div style="margin-left:20px">
+								<input id="licenseURL" type="url" v-model="metadata.license.url">
+								<label for="licenseURL">URL</label>
+							</div>
+						</div>
+
+						<div class="formField">
+							<label for="private">Private</label><br/>
+							<input type = "checkbox" id="private" v-model="metadata.private">
+						</div>
+
+						<div class="formField">
+							Bounding box (default values for testing)
+							<div style="margin-left:20px">
+								<input id="west" v-model="metadata.bounding_box.west">
+								<label for="west">West</label>
+							</div>
+							<div style="margin-left:20px">
+								<input id="south" v-model="metadata.bounding_box.south">
+								<label for="south">South</label>
+							</div>
+							<div style="margin-left:20px">
+								<input id="east" v-model="metadata.bounding_box.east">
+								<label for="east">East</label>
+							</div>
+							<div style="margin-left:20px">
+								<input id="north" v-model="metadata.bounding_box.north">
+								<label for="north">North</label>
+							</div>
+						</div>
+
+						<h2 style="margin-top: 50px;">Files</h2>
+
+						<h3 style="margin-bottom: 0;">Documents</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && documentsTmp.length">
+								<div>Existing documents (check box to mark for removal)</div>
+								<div v-for="document in documentsTmp" style="margin-left: 20px;" >
+									<span>{{ document.name }}</span>
+									<input type="checkbox" v-model="metadata.files[document.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="documents">Select document files to add</label><br/>
+								<input type="file" id="documents"  name="documents" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('documents').click();" :disabled="collectionFile" />							
+							</div>
+			
+							<div v-if="documentFiles && documentFiles.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="document in documentFiles" :key="document.name" style="margin-left: 20px;" >
+								<span>{{ document.name }}</span>
+								<input type="checkbox" @change="fileRemoved('document', document)">
+							</div>
+						</div>
+
+						<h3 style="margin-bottom: 0;">Images</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && imagesTmp.length">
+								<div>Existing images (check box to mark for removal)</div>
+								<div v-for="image in imagesTmp" style="margin-left: 20px;" >
+									<span>{{ image.name }}</span>
+									<input type="checkbox" v-model="metadata.files[image.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="images">Select image files to add</label><br/>
+								<input type="file" id="images"  name="images" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('images').click();" :disabled="collectionFile" />							
+							</div>
+			
+							<div v-if="imageFiles && imageFiles.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="image in imageFiles" :key="image.name" style="margin-left: 20px;" >
+								<span>{{ image.name }}</span>
+								<input type="checkbox" @change="fileRemoved('image', image)">
+							</div>
+						</div>
+
+						<h3 style="margin-bottom: 0;">Notes</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && notesMiscTmp.length">
+								<div>Existing notes (check box to mark for removal)</div>
+								<div v-for="note in notesMiscTmp" style="margin-left: 20px;" >
+									<span>{{ note.name }}</span>
+									<input type="checkbox" v-model="metadata.files[note.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="notes:misc">Select note files to add</label><br/>
+								<input type="file" id="notes:misc"  name="notes:misc" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('notes:misc').click();" :disabled="collectionFile" />							
+							</div>
+
+							<div v-if="noteMiscFiles && noteMiscFiles.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="note in noteMiscFiles" :key="note.name" style="margin-left: 20px;" >
+								<span>{{ note.name }}</span>
+								<input type="checkbox" @change="fileRemoved('noteMisc', note)">
+							</div>
+						</div>
+
+						<h3 style="margin-bottom: 0;">Metadata</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && metadataTmp.length">
+								<div>Existing metadata (check box to mark for removal)</div>
+								<div v-for="m in metadataTmp" style="margin-left: 20px;" >
+									<span>{{ m.name }}</span>
+									<input type="checkbox" v-model="metadata.files[m.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="metadata">Select metadata files to add</label><br/>
+								<input type="file" id="metadata"  name="metadata" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('metadata').click();" :disabled="collectionFile" />							
+							</div>
+
+							<div v-if="metadataFiles && metadataFiles.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="metadata in metadataFiles" :key="metadata.name" style="margin-left: 20px;" >
+								<span>{{ metadata.name }}</span>
+								<input type="checkbox" @change="fileRemoved('metadata', metadata)">
+							</div>
+						</div>
+
+						<h3 style="margin-bottom: 0;">GIS Data (NCGMP09)</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && gisdataNcgmp09Tmp.length">
+								<div>Existing NCGMP09 (check box to mark for removal)</div>
+								<div v-for="n in gisdataNcgmp09Tmp" style="margin-left: 20px;" >
+									<span>{{ n.name }}</span>
+									<input type="checkbox" v-model="metadata.files[n.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="gisdata:ncgmp09">Select NCGMP09 file to add</label><br/>
+								<input type="file" id="gisdata:ncgmp09"  name="gisdata:ncgmp09" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('gisdata:ncgmp09').click();" :disabled="collectionFile" />							
+							</div>
+
+							<div v-if="gisdataNcgmp09 && gisdataNcgmp09.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="gisdata in gisdataNcgmp09" :key="gisdata.name" style="margin-left: 20px;" >
+								<span>{{ gisdata.name }}</span>
+								<input type="checkbox" @change="fileRemoved('gisdataNcgmp09', gisdata)">
+							</div>
+						</div>
+
+
+						<h3 style="margin-bottom: 0;">GIS Data (legacy)</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && gisdataLegacyTmp.length">
+								<div>Existing legacy (check box to mark for removal)</div>
+								<div v-for="l in gisdataLegacyTmp" style="margin-left: 20px;" >
+									<span>{{ l.name }}</span>
+									<input type="checkbox" v-model="metadata.files[l.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="gisdata:legacy">Select legacy files to add</label><br/>
+								<input type="file" id="gisdata:legacy"  name="gisdata:legacy" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('gisdata:legacy').click();" :disabled="collectionFile" />							
+							</div>
+
+							<div v-if="gisdataLegacy && gisdataLegacy.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="gisdata in gisdataLegacy" :key="gisdata.name" style="margin-left: 20px;" >
+								<span>{{ gisdata.name }}</span>
+								<input type="checkbox" @change="fileRemoved('gisdataLegacy', gisdata)">
+							</div>
+						</div>
+
+						<h3 style="margin-bottom: 0;">GIS Data (layers)</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && gisdataLayersTmp.length">
+								<div>Existing layers (check box to mark for removal)</div>
+								<div v-for="l in gisdataLayersTmp" style="margin-left: 20px;" >
+									<span>{{ l.name }}</span>
+									<input type="checkbox" v-model="metadata.files[l.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="gisdata:layers">Select layer files to add</label><br/>
+								<input type="file" id="gisdata:layers"  name="gisdata:layers" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('gisdata:layers').click();" :disabled="collectionFile" />							
+							</div>
+
+							<div v-if="gisdataLayers && gisdataLayers.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="gisdata in gisdataLayers" :key="gisdata.name" style="margin-left: 20px;" >
+								<span>{{ gisdata.name }}</span>
+								<input type="checkbox" @change="fileRemoved('gisdataLayers', gisdata)">
+							</div>
+						</div>
+
+						<h3 style="margin-bottom: 0;">GIS Data (raster)</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && gisdataRasterTmp.length">
+								<div>Existing rasters (check box to mark for removal)</div>
+								<div v-for="r in gisdataRasterTmp" style="margin-left: 20px;" >
+									<span>{{ r.name }}</span>
+									<input type="checkbox" v-model="metadata.files[r.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="gisdata:raster">Select raster files to add</label><br/>
+								<input type="file" id="gisdata:raster"  name="gisdata:raster" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('gisdata:raster').click();" :disabled="collectionFile" />							
+							</div>
+
+							<div v-if="gisdataRaster && gisdataRaster.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="gisdata in gisdataRaster" :key="gisdata.name" style="margin-left: 20px;" >
+								<span>{{ gisdata.name }}</span>
+								<input type="checkbox" @change="fileRemoved('gisdataRaster', gisdata)">
+							</div>
+						</div>
+
+						<div v-if="mode !== 'Patch'">
+							<h3>...or...</h3>
+							<div class="formField">
+								<label for="collection">Select complete tar.gz file to upload</label><br/>
+								<!--<input type="file" id="collection" name="collection" @change="processFile($event)">-->
+								<input type="file" id="collection"  name="collection" multiple="false" @change="processFile($event)" style="display: none;" />
+								<input type="button" value="Choose file" onclick="document.getElementById('collection').click();" />							
+							</div>
+							<div v-if="collectionFile" style="margin-left: 20px;" >
+								<span>{{ collectionFile.name }}</span>
+							</div>
+						</div>
+
+					</div>
+			
+					<div class="formField" style="margin-top: 50px;" v-if="mode==='Create'">
+						<input type="button" id="createSubmit" value="Create" @click="onSubmit">
+					</div>
+
+					<div class="formField" style="margin-top: 50px;" v-if="mode==='Patch'">
+						<input type="button" id="patchSubmit" value="Patch" @click="onSubmit">
+					</div>
+
+					<div class="formField" style="margin-top: 50px;" v-if="mode==='Replace'">
+						<input type="button" id="replaceSubmit" value="Replace" @click="onSubmit">
+					</div>
+
+					<div class="formField" style="margin-top: 50px;" v-if="mode==='Remove'">
+						<input type="button" id="removeSubmit" value="Remove" @click="onSubmit">
+					</div>
+
+				</form> 
+			</div>
+			<div v-else-if="working">
+				<circle-spin></circle-spin>
+			</div>
+			<div v-else>
+				<pre>{{ message | pretty }}</pre>
+			</div>
+		</div>
+
+		<script>
+			Vue.use(VueSpinners);
+
+			//TODO: load metadata defaults from API
+			const	initialMetadata = {
+				title: '',
+				authors: [],
+				year: '',
+				journal: {
+					name: null,
+					publisher: null,
+					url: null
+				},
+				series: null,
+				abstract: null,
+				informal_name: null,
+				links: [],
+				keywords: [],
+				language: "English", 
+				license:  {
+					"type": "CC BY-NC-SA 4.0",
+					"url": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+				},
+				private: false,
+				//TODO: Dummy values for testing
+				bounding_box: {
+					west:'-113', 
+					south:'33.5',
+					east:'-112',
+					north:'34'
+				},
+				collection_group: {
+					name: null
+				},
+				links: [],
+				identifiers: {
+					perm_id: null
+				},
+				files: []
+			};
+
+			const app = new Vue({
+				el: '#app',
+				data: {
+					title: 'Collection Import',
+					mode: 'Create',
+					message: '',
+					showForm: true,
+					working: false,
+					keywordTypes: ["theme", "place", "temporal"], //TODO: fetch from server(db)?
+					collectionGroups: null,
+					loadExistingError: null,
+					collectionFile: null,
+					documentFiles: null,
+					imageFiles: null,
+					noteMiscFiles: null,
+					metadataFiles: null,
+					gisdataNcgmp09: null,
+					gisdataLegacy: null,
+					gisdataLayers: null,
+					gisdataRaster: null,
+					targetCollection: null,
+					//selectedCollectionGroup: null,
+					newAuthorPerson: null,
+					newAuthorOrganization: null,
+					newAuthorGivenname: null,
+					newAuthorSurname: null,
+					newLinkName: null,
+					newLinkURL: null,
+					newKeywordName: null,
+					newKeywordType: null,
+					metadata: null			  	
+				},
+				beforeMount: function() {
+					this.fetchCollectionGroups();
+					this.resetForm();
+				},
+				filters: {
+					pretty: function(value) {
+						return JSON.stringify(value, null, 4);
+					}
+				},				
+				computed: {
+					//Create tmp array of existing files for each file type to keep 
+					//track of removals
+					documentsTmp: function () {
+						console.log("documents enter");console.log(this.metadata);
+						return this.createTmpFiles("documents");
+					},
+					imagesTmp: function () {
+						console.log("images enter");console.log(this.metadata);
+						return this.createTmpFiles("images");
+					},
+					metadataTmp: function () {
+						console.log("meta enter");console.log(this.metadata);
+						return this.createTmpFiles("metadata");
+					},
+					notesMiscTmp: function () {
+						console.log("notesMisc enter");console.log(this.metadata);
+						return this.createTmpFiles("notes:misc");
+					},
+					gisdataLegacyTmp: function () {
+						console.log("gisdataLegacy enter");console.log(this.metadata);
+						return this.createTmpFiles("gisdata:legacy");
+					},
+					gisdataLayersTmp: function () {
+						console.log("gisdataLayers enter");console.log(this.metadata);
+						return this.createTmpFiles("gisdata:layers");
+					},
+					gisdataRasterTmp: function () {
+						console.log("gisdataRaster enter");console.log(this.metadata);
+						return this.createTmpFiles("gisdata:raster");
+					},
+					gisdataNcgmp09Tmp: function () {
+						console.log("gisdataNCGMP09 enter");console.log(this.metadata);
+						return this.createTmpFiles("gisdata:ncgmp09");
+					},
+				},
+				methods: {
+					fetchCollectionGroups() {
+						console.log("fetchCollectionGroups start");
+						return axios.get('http://localhost:3000/api/v1/dicts/collection_groups', {
+							headers: {'Accept': 'application/json'}
+						}).catch(error => {
+							console.log(error);
+						}).then(result => {
+							console.log(result);
+							this.collectionGroups = JSON.parse(JSON.stringify(result.data.data));
+							console.log("fetched collectionGroups = ");console.log(this.collectionGroups);
+						});
+					},
+					resetForm(event) {
+						console.log("resetForm Enter");
+						this.collectionFile = null;
+						this.documentFiles = null;
+						this.imageFiles = null;
+						this.noteMiscFiles = null;
+						this.metadataFiles = null;
+						this.gisdataNcgmp09 = null;
+						this.gisdataLegacy = null;
+						this.gisdataLayers = null;
+						this.gisdataRaster = null;
+						this.targetCollection = null;
+						this.metadata = JSON.parse(JSON.stringify(initialMetadata));
+						this.loadExistingError = null;
+					},
+					createTmpFiles(fileType) {
+						return this.metadata.files.reduce(function (acc, file, index) {
+							if (file.type === fileType) {
+								const tmpFile = Object.assign({}, file);
+								tmpFile.originalIndex = index;
+								acc.push(tmpFile);
+							}
+							return acc;
+						}, []);
+					},
+					loadExisting(event) {
+						console.log("Load existing start: " + this.metadata.identifiers.perm_id);
+						this.loadExistingError = null;
+						return axios.get('http://localhost:3000/api/v1/metadata/' + this.metadata.identifiers.perm_id, {
+							headers: {'Accept': 'application/json'}
+						}).catch(error => {
+							console.log(error);
+							this.loadExistingError = "Unable to load specified collection";
+						}).then(result => {
+							console.log(result);
+							this.metadata = JSON.parse(JSON.stringify(result.data.data.metadata));
+							console.log("fetched metadata = ");console.log(this.metadata);
+						});
+					},
+					fileRemoved(type, file) {
+						console.log("fileRemoved enter");
+						console.log(type);
+						console.log(file);
+						const filter = function(f) {
+							return f.name !== file.name;
+						}
+						switch(type) {
+							case "document": 
+								console.log("document");
+								this.documentFiles = this.documentFiles.filter(filter);
+								break;
+							case "image": 
+								console.log("image");
+								this.imageFiles = this.imageFiles.filter(filter);
+								break;
+							case "noteMisc": 
+								console.log("noteMisc");
+								this.noteMiscFiles = this.noteMiscFiles.filter(filter);
+								break;
+							case "metadata": 
+								console.log("metadata");
+								this.metadataFiles = this.metadataFiles.filter(filter);
+								break;
+							case "gisdataNcgmp09": 
+								console.log("gisdataNcgmp09");
+								this.gisdataNcgmp09 = this.gisdataNcgmp09.filter(filter);
+								break;
+							case "gisdataLegacy": 
+								console.log("gisdataLegacy");
+								this.gisdataLegacy = this.gisdataLegacy.filter(filter);
+								break;
+							case "gisdataLayers": 
+								console.log("gisdataLayers");
+								this.gisdataLayers = this.gisdataLayers.filter(filter);
+								break;
+							case "gisdataRaster": 
+								console.log("gisdataRaster");
+								this.gisdataRaster = this.gisdataRaster.filter(filter);
+								break;
+							default :
+								break;
+						}
+					},
+					addAuthor(event) {
+						console.log("addAuthor enter");
+						this.metadata.authors.push({
+							person: this.newAuthorPerson,
+							givenname: this.newAuthorGivenname,
+							surname: this.newAuthorSurname,
+							organization: this.newAuthorOrganization
+						});
+						this.newAuthorPerson = null;
+						this.newAuthorOrganization = null;
+						this.newAuthorGivenname = null;
+						this.newAuthorSurname = null;
+					},
+					authorRemoved(author) {
+						const filter = function(a) {
+							return a.person !== author.person;
+						}
+						this.metadata.authors = this.metadata.authors.filter(filter);
+					},
+					addLink(event) {
+						console.log("addLink enter");
+						this.metadata.links.push({url: this.newLinkURL, name: this.newLinkName});
+						this.newLinkURL = null;
+						this.newLinkName = null;
+					},
+					linkRemoved(link) {
+						const filter = function(l) {
+							return l.url !== link.url;
+						}
+						this.metadata.links = this.metadata.links.filter(filter);
+					},
+					addKeyword(event) {
+						console.log("addKeyword enter");
+						this.metadata.keywords.push({type: this.newKeywordType, name: this.newKeywordName});
+						this.newKeywordType = null;
+						this.newKeywordName = null;
+					},
+					keywordRemoved(keyword) {
+						const filter = function(k) {
+							return k.name !== keyword.name;
+						}
+						this.metadata.keywords = this.metadata.keywords.filter(filter);
+					},
+					onSubmit(event) {
+						console.log("onSubmit enter");
+						console.log(event);
+						console.log(event.target.id);
+						console.log("this.mode = " + this.mode);
+						if (this.mode === "Patch" ||
+							this.mode === "Replace") {
+							console.log("updating");
+						} else if (this.mode === "Remove") {
+							console.log("removing");
+						}
+
+						this.showForm = false;
+						this.working = true;
+
+						//Only interested in metadata.files when patching, 
+						//and then only those marked for removal
+						if (this.mode === "Patch") {
+							this.metadata.files = this.metadata.files.filter(function(file) {
+								return file.remove;
+							});	
+							//if files is empty, delete it from the patch
+							if (this.metadata.files.length === 0) {
+								delete this.metadata.files;
+							}
+						}
+						console.log("filtered files = " + this.metadata.files);
+
+						const formData = new FormData();
+						formData.append('azgs', JSON.stringify(this.metadata));
+						//TODO: Consider sending the metadata as a blob to enable per-part mimetype. Like this:
+						//const blob = new Blob([JSON.stringify(this.metadata)], { type: "application/merge-patch+json"});
+						//formData.append('patchmeta', blob);
+						if (this.collectionFile) {
+							formData.append('collection', this.collectionFile);
+						} else { //Note: collection overrides others
+							if (this.documentFiles) {
+								for (let i = 0; i < this.documentFiles.length; i++) {					
+									console.log("appending doc file ");
+									console.log(this.documentFiles[i]);
+									formData.append('documents', this.documentFiles[i]);
+								};
+							}
+							if (this.imageFiles) {
+								for (let i = 0; i < this.imageFiles.length; i++) {					
+									console.log("appending image file ");
+									console.log(this.imageFiles[i]);
+									formData.append('images', this.imageFiles[i]);
+								};
+							}
+							if (this.noteMiscFiles) {
+								for (let i = 0; i < this.noteMiscFiles.length; i++) {					
+									console.log("appending note misc file ");
+									console.log(this.noteMiscFiles[i]);
+									formData.append('notes:misc', this.noteMiscFiles[i]);
+								};
+							}
+							if (this.metadataFiles) {
+								for (let i = 0; i < this.metadataFiles.length; i++) {					
+									console.log("appending metadata file ");
+									console.log(this.metadataFiles[i]);
+									formData.append('metadata', this.metadataFiles[i]);
+								};
+							}
+							if (this.gisdataNcgmp09) {
+								for (let i = 0; i < this.gisdataNcgmp09.length; i++) {					
+									console.log("appending gisdata:ncgmp09 file ");
+									console.log(this.gisdataNcgmp09[i]);
+									formData.append('gisdata:ncgmp09', this.gisdataNcgmp09[i]);
+								};
+							}
+							if (this.gisdataLegacy) {
+								for (let i = 0; i < this.gisdataLegacy.length; i++) {					
+									console.log("appending gisdata:legacy file ");
+									console.log(this.gisdataLegacy[i]);
+									formData.append('gisdata:legacy', this.gisdataLegacy[i]);
+								};
+							}
+							if (this.gisdataLayers) {
+								for (let i = 0; i < this.gisdataLayers.length; i++) {					
+									console.log("appending gisdata:layers file ");
+									console.log(this.gisdataLayers[i]);
+									formData.append('gisdata:layers', this.gisdataLayers[i]);
+								};
+							}
+							if (this.gisdataRaster) {
+								for (let i = 0; i < this.gisdataRaster.length; i++) {					
+									console.log("appending gisdata:raster file ");
+									console.log(this.gisdataRaster[i]);
+									formData.append('gisdata:raster', this.gisdataRaster[i]);
+								};
+							}
+						}
+						console.log("formData = ");console.log(formData);
+						console.log("this.mode = " + this.mode);
+
+						Promise.resolve({ 
+							collectionID: this.metadata.identifiers.perm_id, 
+							mode: this.mode
+						}).then(function(bundle) {
+							const collectionID = bundle.collectionID;
+							const mode = bundle.mode
+							console.log("collectionID =");
+							console.log(collectionID);
+							console.log("mode = " + mode);
+
+							if (mode === "Replace") {
+								console.log("PUTing");
+								return axios.put('http://localhost:3000/api/v1/collections/' + collectionID, formData, {
+									headers: {'Content-Type':'multipart/form-data',
+											  'Accept': 'application/json'}
+								});
+							} else if (mode === "Patch") {
+								console.log("PATCHing");
+								return axios.patch('http://localhost:3000/api/v1/collections/' + collectionID, formData, {
+									headers: {'Content-Type':'multipart/form-data',
+											  'Accept': 'application/json'}
+								});
+							} else if (mode === "Remove") {
+								console.log("DELETing");
+								return axios.delete('http://localhost:3000/api/v1/collections/' + collectionID, {
+									headers: {'Accept': 'application/json'}
+								});
+							} else {
+								console.log("POSTing");
+								return axios.post('http://localhost:3000/api/v1/collections', formData, {
+									headers: {'Content-Type':'multipart/form-data',
+											  'Accept': 'application/json'}
+								});
+							}
+						}).then((response) => {
+							console.log(response);
+							this.message = response.data;
+							this.working = false;
+						}).catch((error) => {
+							console.log("error");
+							console.log(error);
+							this.message = error.response.data;
+							this.working = false;
+						});
+					},
+					processFile(event) {
+						console.log("event.target.id = " + event.target.id);
+						console.log(event.target.files);
+						console.log("event.target.files[0] = " + event.target.files[0].name);
+						switch (event.target.id) {
+							case "collection" :
+								this.collectionFile = event.target.files[0];
+								break;
+							case "documents" :
+								this.documentFiles = this.documentFiles || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									if (!this.documentFiles.filter(function(file) {
+											return file.name === event.target.files[x].name;
+										}).length) {
+										this.documentFiles.push(event.target.files[x]);
+									}
+								}
+								break;
+							case "images" :
+								this.imageFiles = this.imageFiles || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.imageFiles.push(event.target.files[x]);
+								}
+								break;
+							case "notes:misc" :
+								this.noteMiscFiles = this.noteMiscFiles || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.noteMiscFiles.push(event.target.files[x]);
+								}
+								break;
+							case "metadata" :
+								this.metadataFiles = this.metadataFiles || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.metadataFiles.push(event.target.files[x]);
+								}
+								break;
+							case "gisdata:ncgmp09" :
+								this.gisdataNcgmp09 = this.gisdataNcgmp09 || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.gisdataNcgmp09.push(event.target.files[x]);
+								}
+								break;
+							case "gisdata:legacy" :
+								this.gisdataLegacy = this.gisdataLegacy || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.gisdataLegacy.push(event.target.files[x]);
+								}
+								break;
+							case "gisdata:layers" :
+								this.gisdataLayers = this.gisdataLayers || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.gisdataLayers.push(event.target.files[x]);
+								}
+								break;
+							case "gisdata:raster" :
+								this.gisdataRaster = this.gisdataRaster || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.gisdataRaster.push(event.target.files[x]);
+								}
+								break;
+							default :
+								break;
+						}
+					},
+				}
+			})
+ 		</script>
+
+	</body>
+</html>
