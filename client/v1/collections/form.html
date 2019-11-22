@@ -16,7 +16,24 @@
 	</head>
 	<body>
 		<div id="app">
-			<div v-if="showForm && !working">
+
+			<div v-if="!token">
+				<form>
+					<input id="username" v-model="username">
+					<label for="one">Username</label>
+					<br>
+					<input id="password" v-model="password">
+					<label for="two">Password</label>
+					<div class="formField" style="margin-top: 50px;">
+						<input type="button" id="loginSubmit" value="Login" @click="onLoginSubmit">
+					</div>
+					<div v-if="loginError" style="font-size: small; color:red;">
+						{{ loginError }}
+					</div>
+				</form> 		
+			</div>
+
+			<div v-else-if="showForm && !working">
 				<h1>{{ title }}</h1>
 				<h4 style="margin-bottom: 20px">Note: sanity checking of values entered below is not yet implemented</h4>
 
@@ -481,9 +498,28 @@
 				files: []
 			};
 
+			//Token hard-coded for testing
+			//const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOnsidXNlcl9pZCI6MSwidXNlcm5hbWUiOiJkb3VnbGFzbSIsInBhc3N3b3JkIjoiJDJiJDEwJHZOZ2ZIcU0xWndHRnBIU1JGTUZuZU9IZFl0djlEYkNyNVBWY0kvcU9WbnpQSFc5N0VnSmlDIiwicm9sZV9pZCI6MSwiZW1haWwiOiJvcmRlcnNAZG91Z2xhc21lcmVkaXRoLm5ldCIsImZpcnN0X25hbWUiOiJEb3VnbGFzIiwibGFzdF9uYW1lIjoiTWVyZWRpdGgiLCJvcmdhbml6YXRpb24iOiJBWkdTIiwiY2l0eSI6IlR1Y3NvbiIsInJlYXNvbiI6bnVsbCwidG9zX2FjY2VwdGVkIjp0cnVlLCJhcHByb3ZlZCI6dHJ1ZX0sImV4cCI6MTU3NDIwOTk3NDgyMn0.LZztD52N4MQfhFYq8ANmTC3lxfAcvWyU7GHnWb0hfn4";
+
+			//this.localStorage = window.localStorage;
+			//this.token = localStorage.getItem("azlib_token");
+/*
+			if (!localStorage.getItem("az_test")) {
+				console.log("adding");
+				localStorage.setItem("az_test", "Hi there");
+			}
+			console.log("local thing = " + localStorage.getItem("az_test"));
+*/
+			const server = "http://localhost:3000";
+
 			const app = new Vue({
 				el: '#app',
 				data: {
+					localStorage: null,
+					token: null,
+					username: null,
+					password: null,
+					loginError: null,
 					title: 'Collection Import',
 					mode: 'Create',
 					message: '',
@@ -514,6 +550,7 @@
 					metadata: null			  	
 				},
 				beforeMount: function() {
+					this.verifyToken();
 					this.fetchCollectionGroups();
 					this.resetForm();
 				},
@@ -559,10 +596,19 @@
 					},
 				},
 				methods: {
+					verifyToken() {
+						console.log("verifyToken start");
+						this.localStorage = window.localStorage;
+						this.token = this.localStorage.getItem("azlib_token");
+						console.log(this.token);
+					},
 					fetchCollectionGroups() {
 						console.log("fetchCollectionGroups start");
-						return axios.get('http://localhost:3000/api/v1/dicts/collection_groups', {
-							headers: {'Accept': 'application/json'}
+						return axios.get(server + '/api/v1/dicts/collection_groups', {
+							headers: {
+								'Accept': 'application/json',
+								'Authorization': "Bearer " + this.token
+							}
 						}).catch(error => {
 							console.log(error);
 						}).then(result => {
@@ -599,8 +645,11 @@
 					loadExisting(event) {
 						console.log("Load existing start: " + this.metadata.identifiers.perm_id);
 						this.loadExistingError = null;
-						return axios.get('http://localhost:3000/api/v1/metadata/' + this.metadata.identifiers.perm_id, {
-							headers: {'Accept': 'application/json'}
+						return axios.get(server + '/api/v1/metadata/' + this.metadata.identifiers.perm_id, {
+							headers: {
+								'Accept': 'application/json',
+								'Authorization': "Bearer " + this.token
+							}
 						}).catch(error => {
 							console.log(error);
 							this.loadExistingError = "Unable to load specified collection";
@@ -697,8 +746,28 @@
 						}
 						this.metadata.keywords = this.metadata.keywords.filter(filter);
 					},
+					onLoginSubmit(event) {
+						console.log("onLoginSubmit enter");
+						return axios.post(server + '/api/v1/users', {
+							username: this.username,
+							password: this.password
+						}, {
+							headers: {
+								'Accept': 'application/json',
+							}
+						}).catch(error => {
+							console.log(error);
+							this.loginError = "Unable to login";
+						}).then(result => {
+							console.log(result);
+							console.log(result.data.token);
+							localStorage.setItem("azlib_token", result.data.token);
+							this.token = result.data.token;
+						});
+					},
 					onSubmit(event) {
 						console.log("onSubmit enter");
+						console.log(this.token);
 						console.log(event);
 						console.log(event.target.id);
 						console.log("this.mode = " + this.mode);
@@ -708,6 +777,8 @@
 						} else if (this.mode === "Remove") {
 							console.log("removing");
 						}
+						
+						const token = this.token;
 
 						this.showForm = false;
 						this.working = true;
@@ -805,26 +876,39 @@
 
 							if (mode === "Replace") {
 								console.log("PUTing");
-								return axios.put('http://localhost:3000/api/v1/collections/' + collectionID, formData, {
-									headers: {'Content-Type':'multipart/form-data',
-											  'Accept': 'application/json'}
+								return axios.put(server + '/api/v1/collections/' + collectionID, formData, {
+									headers: {
+										'Content-Type':'multipart/form-data',	
+										'Accept': 'application/json',
+										'Authorization': "Bearer " + token
+									}
 								});
 							} else if (mode === "Patch") {
 								console.log("PATCHing");
-								return axios.patch('http://localhost:3000/api/v1/collections/' + collectionID, formData, {
-									headers: {'Content-Type':'multipart/form-data',
-											  'Accept': 'application/json'}
+								console.log("token = ");console.log(this.token);
+								return axios.patch(server + '/api/v1/collections/' + collectionID, formData, {
+									headers: {
+										'Content-Type':'multipart/form-data',	
+										'Accept': 'application/json',
+										'Authorization': "Bearer " + token
+									}
 								});
 							} else if (mode === "Remove") {
 								console.log("DELETing");
-								return axios.delete('http://localhost:3000/api/v1/collections/' + collectionID, {
-									headers: {'Accept': 'application/json'}
+								return axios.delete(server + '/api/v1/collections/' + collectionID, {
+									headers: {
+										'Accept': 'application/json',
+										'Authorization': "Bearer " + token
+									}
 								});
 							} else {
 								console.log("POSTing");
-								return axios.post('http://localhost:3000/api/v1/collections', formData, {
-									headers: {'Content-Type':'multipart/form-data',
-											  'Accept': 'application/json'}
+								return axios.post(server + '/api/v1/collections', formData, {
+									headers: {
+										'Content-Type':'multipart/form-data',	
+										'Accept': 'application/json',
+										'Authorization': "Bearer " + token
+									}
 								});
 							}
 						}).then((response) => {
