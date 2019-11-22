@@ -46,9 +46,19 @@
 						<br><br>
 						<input id="organization" v-model="organization">
 						<label for="organization">Organization</label>
-						<br><br>
+						<!--<br><br>
 						<input id="role" v-model="role">
 						<label for="role">Desired role</label>
+						-->
+						<br><br>
+						<select id="role"  name="role" v-model="role">
+							<option v-for="r in roles" v-bind:value="r.id">
+								{{ r.name }}
+							</option>
+						</select>						
+						<label for="role">Desired role</label><br/>
+
+
 						<div class="formField" style="margin-top: 50px;">
 							<input type="button" id="registerSubmit" value="Register" @click="onRegisterSubmit">
 						</div>
@@ -573,6 +583,10 @@
 					lastName: null,
 					organization: null,
 					role: null,
+					roles: [
+						{id: 1, name: "Admin"},
+						{id: 2, name: "End User"}
+					],
 					loginError: null,
 					registerError: null,
 					title: 'Collection Import',
@@ -804,6 +818,7 @@
 					onRegister(event) {
 						console.log("onRegister enter");
 						this.registering = true;
+						//TODO: fetch roles from API here rather than hard-coding
 					},
 					onLogin(event) {
 						console.log("onLogin enter");
