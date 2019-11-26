@@ -567,7 +567,9 @@
 			}
 			console.log("local thing = " + localStorage.getItem("az_test"));
 */
-			const server = "http://localhost:3000";
+			//const server = "http://localhost:3000";
+			const server = location.protocol + "//" + location.hostname + ":3000";
+			console.log("server = " + server);
 
 			const app = new Vue({
 				el: '#app',
