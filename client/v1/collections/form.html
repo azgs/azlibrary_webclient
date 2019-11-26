@@ -26,17 +26,14 @@
 					</div>
 					
 					<form>
-						<input id="username" v-model="username">
-						<label for="username">Username</label>
+						<input id="email" v-model="email">
+						<label for="email">Email</label>
 						<br><br>
 						<input type="password" id="password" v-model="password">
 						<label for="password">Password</label>
 						<br><br>
 						<input type="password" id="verifyPassword" v-model="verifyPassword">
 						<label for="verifyPassword">Verify Password</label>
-						<br><br>
-						<input id="email" v-model="email">
-						<label for="email">Email</label>
 						<br><br>
 						<input id="firstName" v-model="firstName">
 						<label for="firstName">First name</label>
@@ -57,10 +54,13 @@
 							</option>
 						</select>						
 						<label for="role">Desired role</label><br/>
+						<br><br>
+						<input type=checkbox id="tos" v-model="tos">
+						<label for="tos">I have read and agree to the TOS</label>
 
 
 						<div class="formField" style="margin-top: 50px;">
-							<input type="button" id="registerSubmit" value="Register" @click="onRegisterSubmit">
+							<input type="button" id="registerSubmit" value="Register" :disabled="!tos" @click="onRegisterSubmit">
 						</div>
 						<div v-if="registerError" style="font-size: small; color:red;">
 							{{ registerError }}
@@ -75,8 +75,8 @@
 					</div>
 					
 					<form>
-						<input id="username" v-model="username">
-						<label for="one">Username</label>
+						<input id="email" v-model="email">
+						<label for="email">Email</label>
 						<br><br>
 						<input type="password" id="password" v-model="password">
 						<label for="two">Password</label>
@@ -575,7 +575,6 @@
 					localStorage: null,
 					token: null,
 					registering: false,
-					username: null,
 					password: null,
 					verifyPassword: null,
 					email: null,
@@ -587,6 +586,7 @@
 						{id: 1, name: "Admin"},
 						{id: 2, name: "End User"}
 					],
+					tos: false,
 					loginError: null,
 					registerError: null,
 					title: 'Collection Import',
@@ -831,15 +831,13 @@
 						} else {
 							const data = this;
 							return axios.post(server + '/api/v1/users?signup=true', {
-								username: this.username,
-								password: this.password,
 								email: this.email,
+								password: this.password,
 								firstName: this.firstName,
 								lastName: this.lastName,
 								organization: this.organization,
 								desiredRole: this.role,
-								city: "whatever",
-								tos: true
+								tos: this.tos
 							}, {
 								headers: {
 									'Accept': 'application/json',
@@ -856,7 +854,7 @@
 					onLoginSubmit(event) {
 						console.log("onLoginSubmit enter");
 						return axios.post(server + '/api/v1/users', {
-							username: this.username,
+							email: this.email,
 							password: this.password
 						}, {
 							headers: {
