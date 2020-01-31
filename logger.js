@@ -1,4 +1,5 @@
 const {createLogger, format, transports} = require('winston');
+require('winston-daily-rotate-file');
 
 const pFormat = format.printf(info => {
 	return `${info.timestamp} (${info.level.toUpperCase()}) ${info.message}`;
@@ -12,7 +13,16 @@ const logger = createLogger({
 		//format.prettyPrint()
 		pFormat
   	),
-  	transports: [new transports.Console()]
+  	transports: [
+		new transports.Console(),
+		new transports.DailyRotateFile({
+			dirname: '/tmp/azlibrary/logs/webclient',
+			filename: 'azlibrary_webclient-%DATE%.log',
+			datePattern: 'YYYY-MM-DD',
+			zippedArchive: true
+		})
+
+	]
 });
 
 module.exports = function(fileName) {    

@@ -31,6 +31,9 @@ logger.debug("port = " + global.pp(global.args.port));
 
 const app = express();
 
+app.use(express.json()) // for parsing application/json
+app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
+
 app.use((req, res, next) => {
     req.getHostURL = function() {
       	return req.protocol + "://" + req.get('host'); //TODO: This might choke with query params
@@ -38,20 +41,20 @@ app.use((req, res, next) => {
     return next();
 });
 
-app.use(morgan('dev', {
+app.use(morgan('tiny', {
     skip: (req, res) => {
         return res.statusCode < 400
     }, 
-	//stream: { write: message => logger.info(message) }
-	stream: process.stderr
+	stream: { write: message => logger.info(message) }
+	//stream: process.stderr
 }));
 
-app.use(morgan('dev', {
+app.use(morgan('tiny', {
     skip: (req, res) => {
         return res.statusCode >= 400
     }, 
-	//stream: { write: message => logger.info(message) }
-	stream: process.stdout
+	stream: { write: message => logger.info(message) }
+	//stream: process.stdout
 }));
 
 // uncomment after placing your favicon in /public
