@@ -43,17 +43,6 @@
 						<br><br>
 						<input id="organization" v-model="organization">
 						<label for="organization">Organization</label>
-						<!--<br><br>
-						<input id="role" v-model="role">
-						<label for="role">Desired role</label>
-						-->
-						<br><br>
-						<select id="role"  name="role" v-model="role">
-							<option v-for="r in roles" v-bind:value="r.id">
-								{{ r.name }}
-							</option>
-						</select>						
-						<label for="role">Desired role</label><br/>
 						<br><br>
 						<input type=checkbox id="tos" v-model="tos">
 						<label for="tos">I have read and agree to the TOS</label>
