@@ -22,3 +22,11 @@ Options:
   -h, --help                         output usage information
 ```
 
+
+This application is deployed as a systemd service and can be controlled via:
+
+```
+$ systemctl start azlibrary_webclient.service
+$ systemctl stop azlibrary_webclient.service
+$ systemctl restart azlibrary_webclient.service
+```
