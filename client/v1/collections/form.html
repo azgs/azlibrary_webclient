@@ -369,6 +369,29 @@
 							</div>
 						</div>
 
+						<h3 style="margin-bottom: 0;">GIS Data (GeMS2)</h3>
+						<div style="margin-left: 20px; margin-top: 10px;">
+							<div v-if="mode==='Patch' && gisdataGems2Tmp.length">
+								<div>Existing GeMS2 (check box to mark for removal)</div>
+								<div v-for="n in gisdataGeMS2Tmp" style="margin-left: 20px;" >
+									<span>{{ n.name }}</span>
+									<input type="checkbox" v-model="metadata.files[n.originalIndex].remove">
+								</div>
+							</div>
+
+							<div  style="margin-top: 10px">
+								<label for="gisdata:gems2">Select GeMS2 file to add</label><br/>
+								<input type="file" id="gisdata:gems2"  name="gisdata:gems2" multiple="true" @change="processFile($event)" :disabled="collectionFile" style="display: none;" />
+								<input type="button" value="Choose files" onclick="document.getElementById('gisdata:gems2').click();" :disabled="collectionFile" />							
+							</div>
+
+							<div v-if="gisdataGems2 && gisdataGems2.length" style="margin-left: 20px;">(check box to remove)</div>
+							<div v-for="gisdata in gisdataGems2" :key="gisdata.name" style="margin-left: 20px;" >
+								<span>{{ gisdata.name }}</span>
+								<input type="checkbox" @change="fileRemoved('gisdataGems2', gisdata)">
+							</div>
+						</div>
+
 						<h3 style="margin-bottom: 0;">GIS Data (NCGMP09)</h3>
 						<div style="margin-left: 20px; margin-top: 10px;">
 							<div v-if="mode==='Patch' && gisdataNcgmp09Tmp.length">
@@ -584,6 +607,7 @@
 					imageFiles: null,
 					noteMiscFiles: null,
 					metadataFiles: null,
+					gisdataGems2: null,
 					gisdataNcgmp09: null,
 					gisdataLegacy: null,
 					gisdataLayers: null,
@@ -641,6 +665,10 @@
 						console.log("gisdataRaster enter");console.log(this.metadata);
 						return this.createTmpFiles("gisdata:raster");
 					},
+					gisdataGems2Tmp: function () {
+						console.log("gisdataGems2 enter");console.log(this.metadata);
+						return this.createTmpFiles("gisdata:gems2");
+					},
 					gisdataNcgmp09Tmp: function () {
 						console.log("gisdataNCGMP09 enter");console.log(this.metadata);
 						return this.createTmpFiles("gisdata:ncgmp09");
@@ -675,6 +703,7 @@
 						this.imageFiles = null;
 						this.noteMiscFiles = null;
 						this.metadataFiles = null;
+						this.gisdataGems2 = null;
 						this.gisdataNcgmp09 = null;
 						this.gisdataLegacy = null;
 						this.gisdataLayers = null;
@@ -733,6 +762,10 @@
 							case "metadata": 
 								console.log("metadata");
 								this.metadataFiles = this.metadataFiles.filter(filter);
+								break;
+							case "gisdataGems2": 
+								console.log("gisdataGems2");
+								this.gisdataGems2 = this.gisdataGems2.filter(filter);
 								break;
 							case "gisdataNcgmp09": 
 								console.log("gisdataNcgmp09");
@@ -919,6 +952,13 @@
 									formData.append('metadata', this.metadataFiles[i]);
 								};
 							}
+							if (this.gisdataGems2) {
+								for (let i = 0; i < this.gisdataGems2.length; i++) {					
+									console.log("appending gisdata:gems2 file ");
+									console.log(this.gisdataGems2[i]);
+									formData.append('gisdata:gems2', this.gisdataGems2[i]);
+								};
+							}
 							if (this.gisdataNcgmp09) {
 								for (let i = 0; i < this.gisdataNcgmp09.length; i++) {					
 									console.log("appending gisdata:ncgmp09 file ");
@@ -1043,6 +1083,12 @@
 								this.metadataFiles = this.metadataFiles || [];
 								for (x = 0; x < event.target.files.length; x++) {
 									this.metadataFiles.push(event.target.files[x]);
+								}
+								break;
+							case "gisdata:gems2" :
+								this.gisdataGems2 = this.gisdataGems2 || [];
+								for (x = 0; x < event.target.files.length; x++) {
+									this.gisdataGems2.push(event.target.files[x]);
 								}
 								break;
 							case "gisdata:ncgmp09" :
