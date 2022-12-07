@@ -22,7 +22,7 @@
     "commander": "^4.0.1",
     "config-leaf": "^0.3.0",
     "ejs": "^2.7.1",
-    "express": "^4.17.1",
+    "express": "^4.18.2",
     "fs-extra": "^8.1.0",
     "morgan": "^1.9.1",
     "pug": "^2.0.4",
