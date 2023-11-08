@@ -1,4 +1,5 @@
-global.config = require('./config/config.json');
+const dotenv = require ("dotenv");
+dotenv.config();
 
 global.pp = (object) => {
 	return require('util').inspect(object, {depth:null, maxArrayLength: null});

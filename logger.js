@@ -17,7 +17,7 @@ const logger = createLogger({
 		new transports.Console(),
 		new transports.DailyRotateFile({
 			//dirname: '/tmp/azlibrary/logs/webclient',
-			dirname: global.config.logDir,
+			dirname: process.env.LOGDIR,
 			filename: 'azlibrary_webclient-%DATE%.log',
 			datePattern: 'YYYY-MM-DD',
 			zippedArchive: true
