@@ -373,7 +373,7 @@
 						<div style="margin-left: 20px; margin-top: 10px;">
 							<div v-if="mode==='Patch' && gisdataGems2Tmp.length">
 								<div>Existing GeMS2 (check box to mark for removal)</div>
-								<div v-for="n in gisdataGeMS2Tmp" style="margin-left: 20px;" >
+								<div v-for="n in gisdataGems2Tmp" style="margin-left: 20px;" >
 									<span>{{ n.name }}</span>
 									<input type="checkbox" v-model="metadata.files[n.originalIndex].remove">
 								</div>
