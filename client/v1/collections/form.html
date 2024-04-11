@@ -159,7 +159,7 @@
 	
 						<div class="formField">
 							<label for="cgroup">Collection group</label><br/>
-							<select id="cgroup"  name="cgroup" v-model="metadata.collection_group.name">
+							<select id="cgroup"  name="cgroup" v-model="metadata.collection_group.name" :disabled="mode==='Patch'">
 								<option v-for="cG in collectionGroups" v-bind:value="cG.name">
 									{{ cG.name }}
 								</option>
