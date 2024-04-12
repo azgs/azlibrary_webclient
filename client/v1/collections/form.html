@@ -894,6 +894,11 @@
 						if (this.mode === "Patch" ||
 							this.mode === "Replace") {
 							console.log("updating");
+							if (this.mode === "Replace") {
+								this.metadata.identifiers.supersedes = [this.metadata.identifiers.perm_id];
+								delete this.metadata.identifiers.perm_id;
+								delete this.metadata.identifiers.superseded_by;
+							}
 						} else if (this.mode === "Remove") {
 							console.log("removing");
 						}
@@ -992,7 +997,10 @@
 						console.log("this.mode = " + this.mode);
 
 						Promise.resolve({ 
-							collectionID: this.metadata.identifiers.perm_id, 
+							collectionID: 
+								this.metadata.identifiers.perm_id ? 
+								this.metadata.identifiers.perm_id :
+								this.metadata.identifiers.supersedes[0], 
 							mode: this.mode
 						}).then(function(bundle) {
 							const collectionID = bundle.collectionID;
