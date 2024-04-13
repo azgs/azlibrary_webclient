@@ -109,7 +109,7 @@
 					</div>
 					<div v-else>
 
-						<div v-if="mode==='Patch' || mode==='Replace'" style="margin-top: 30px; margin-bottom: 50px;">
+						<div v-if="mode==='Patch'" style="margin-top: 30px; margin-bottom: 50px;">
 							<span class="formField">
 								<label for="collectionID">Modify existing collection:</label><br/>
 								<input id="collectionID" v-model="metadata.identifiers.perm_id">
@@ -123,6 +123,32 @@
 							<div v-if="loadExistingError" style="font-size: small; color:red;">
 								{{ loadExistingError }}
 							</div>
+						</div>
+
+						<div v-if="mode==='Replace'" style="margin-top: 30px; margin-bottom: 50px;">
+							<span class="formField">
+								<label for="collectionID">Replace existing collections:</label><br/>
+								<input id="collectionID" v-model="oldCollection">
+							</span>
+							<span class="formField">
+								<input type="button" id="AddCollection" value="Add Collection" @click="addCollection" :disabled="!oldCollection">
+							</span>
+							<ul>
+							<li  v-for="oC in oldCollections">
+							<span class="formField">
+								{{ oC }}
+							</span>
+							<span class="formField">
+								<input type="button" id="Load" value="Load" @click="loadExisting(oC)" >
+							</span>
+							<span class="formField">
+								<input type="button" id="RemoveCollection" value="Remove" @click="collectionRemoved(oC)" >
+							</span>
+							<div v-if="loadExistingError" style="font-size: small; color:red;">
+								{{ loadExistingError }}
+							</div>
+							</li>
+							</ul>
 						</div>
 
 						<h2 style="margin-top: 50px;">Metadata</h2>
@@ -577,6 +603,8 @@
 			const app = new Vue({
 				el: '#app',
 				data: {
+					oldCollection: null,
+					oldCollections: null,
 					localStorage: null,
 					token: null,
 					registering: false,
@@ -722,10 +750,29 @@
 							return acc;
 						}, []);
 					},
-					loadExisting(event) {
-						console.log("Load existing start: " + this.metadata.identifiers.perm_id);
+					addCollection(event) {
+						console.log("addCollection start...");
+						if (!this.oldCollections) {
+							this.oldCollections = [];
+						}
+						this.oldCollections.push(this.oldCollection);
+						this.oldCollection = null;
+						//console.log(this.oldCollections)
+					},
+					collectionRemoved(collection) {
+						console.log("collectionRemoved start")
+						//console.log(collection)
+						//console.log(oldCollections)
+						const filter = function(a) {
+							return a !== collection;
+						}
+						oldCollections = oldCollections.filter(filter);
+						//console.log(oldCollections)
+					},
+					loadExisting(oC) {
+						console.log("Load existing start: " + oC);
 						this.loadExistingError = null;
-						return axios.get(server + '/api/v1/metadata/' + this.metadata.identifiers.perm_id, {
+						return axios.get(server + '/api/v1/metadata/' + (typeof oC === 'string' ? oC : this.metadata.identifiers.perm_id), {
 							headers: {
 								'Accept': 'application/json',
 								'Authorization': "Bearer " + this.token
@@ -894,11 +941,13 @@
 						if (this.mode === "Patch" ||
 							this.mode === "Replace") {
 							console.log("updating");
+		
 							if (this.mode === "Replace") {
-								this.metadata.identifiers.supersedes = [this.metadata.identifiers.perm_id];
+								this.metadata.identifiers.supersedes = this.oldCollections;
 								delete this.metadata.identifiers.perm_id;
 								delete this.metadata.identifiers.superseded_by;
 							}
+							
 						} else if (this.mode === "Remove") {
 							console.log("removing");
 						}
