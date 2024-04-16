@@ -1049,7 +1049,8 @@
 							collectionID: 
 								this.metadata.identifiers.perm_id ? 
 								this.metadata.identifiers.perm_id :
-								this.metadata.identifiers.supersedes[0], 
+								(this.metadata.identifiers.supersedes && this.metadata.identifiers.supersedes.length > 0) ? this.metadata.identifiers.supersedes[0] :
+								null, 
 							mode: this.mode
 						}).then(function(bundle) {
 							const collectionID = bundle.collectionID;
