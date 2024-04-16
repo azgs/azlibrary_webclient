@@ -190,6 +190,9 @@
 									{{ cG.name }}
 								</option>
 							</select>						
+							<div v-if="cgError" style="font-size: small; color:red;">
+								{{ cgError }}
+							</div>
 						</div>
 
 						<div class="formField">
@@ -629,6 +632,7 @@
 					working: false,
 					keywordTypes: ["theme", "place", "temporal"], //TODO: fetch from server(db)?
 					collectionGroups: null,
+					cgError: null,
 					loadExistingError: null,
 					collectionFile: null,
 					documentFiles: null,
@@ -739,6 +743,7 @@
 						this.targetCollection = null;
 						this.metadata = JSON.parse(JSON.stringify(initialMetadata));
 						this.loadExistingError = null;
+						this.cgError = null;
 					},
 					createTmpFiles(fileType) {
 						return this.metadata.files.reduce(function (acc, file, index) {
@@ -938,6 +943,12 @@
 						console.log(event);
 						console.log(event.target.id);
 						console.log("this.mode = " + this.mode);
+						console.log(this.metadata)
+						if (!this.metadata.collection_group.name) {
+							this.cgError = "Collection group is required."
+							return;
+						} 
+
 						if (this.mode === "Patch" ||
 							this.mode === "Replace") {
 							console.log("updating");
