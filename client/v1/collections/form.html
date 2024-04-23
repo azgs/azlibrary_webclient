@@ -765,14 +765,14 @@
 						//console.log(this.oldCollections)
 					},
 					collectionRemoved(collection) {
-						console.log("collectionRemoved start")
+						//console.log("collectionRemoved start")
 						//console.log(collection)
-						//console.log(oldCollections)
+						//console.log(this.oldCollections)
 						const filter = function(a) {
 							return a !== collection;
 						}
-						oldCollections = oldCollections.filter(filter);
-						//console.log(oldCollections)
+						this.oldCollections = this.oldCollections.filter(filter);
+						//console.log(this.oldCollections)
 					},
 					loadExisting(oC) {
 						console.log("Load existing start: " + oC);
