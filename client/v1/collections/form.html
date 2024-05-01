@@ -152,7 +152,7 @@
 						</div>
 
 						<h2 style="margin-top: 50px;">Metadata</h2>
-
+	
 						<div class="formField">
 							<label for="title">Title</label><br/>
 							<input id="title" v-model="metadata.title">
@@ -303,6 +303,28 @@
 								<label for="north">North</label>
 							</div>
 						</div>
+
+						<div v-if="mode==='Patch'">
+							<span class="formField">
+								<label for="collectionID">Supersedes:</label><br/>
+								<input id="collectionID" v-model="supersededCollection">
+							</span>
+							<span class="formField">
+								<input type="button" id="AddCollection" value="Add Collection" @click="addSupersededCollection" :disabled="!supersededCollection">
+							</span>
+							<ul>
+							<li  v-for="oC in supersededCollections">
+							<span class="formField">
+								{{ oC }}
+							</span>
+							<span class="formField">
+								<input type="button" id="RemoveCollection" value="Remove" @click="removeSupersededCollection(oC)" >
+							</span>
+							</li>
+							</ul>
+							
+						</div>
+
 
 						<h2 style="margin-top: 50px;">Files</h2>
 
@@ -608,6 +630,8 @@
 				data: {
 					oldCollection: null,
 					oldCollections: null,
+					supersededCollection: null,
+					supersededCollections: null,
 					localStorage: null,
 					token: null,
 					registering: false,
@@ -774,6 +798,21 @@
 						this.oldCollections = this.oldCollections.filter(filter);
 						//console.log(this.oldCollections)
 					},
+					addSupersededCollection(event) {
+						console.log("addSupersededCollection start...");
+						if (!this.supersededCollections) {
+							this.supersededCollections = [];
+						}
+						this.supersededCollections.push(this.supersededCollection);
+						this.supersededCollection = null;
+						//console.log(this.oldCollections)
+					},
+					removeSupersededCollection(collection) {
+						const filter = function(a) {
+							return a !== collection;
+						}
+						this.supersededCollections = this.supersededCollections.filter(filter);
+					},
 					loadExisting(oC) {
 						console.log("Load existing start: " + oC);
 						this.loadExistingError = null;
@@ -789,6 +828,7 @@
 							console.log(result);
 							this.metadata = JSON.parse(JSON.stringify(result.data.data.metadata));
 							console.log("fetched metadata = ");console.log(this.metadata);
+							this.supersededCollections = this.metadata.identifiers.supersedes
 						});
 					},
 					fileRemoved(type, file) {
@@ -957,8 +997,10 @@
 								this.metadata.identifiers.supersedes = this.oldCollections;
 								delete this.metadata.identifiers.perm_id;
 								delete this.metadata.identifiers.superseded_by;
+							} else if (this.mode === "Patch") {
+								this.metadata.identifiers.supersedes = this.supersededCollections;
 							}
-							
+
 						} else if (this.mode === "Remove") {
 							console.log("removing");
 						}
