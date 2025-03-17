@@ -23,10 +23,10 @@ Options:
 ```
 
 
-This application is deployed as a systemd service and can be controlled via:
+This application is deployed with PM2 and can be controlled via:
 
 ```
-$ systemctl start azlibrary_webclient.service
-$ systemctl stop azlibrary_webclient.service
-$ systemctl restart azlibrary_webclient.service
+$ pm2 start azlibrary_webclient
+$ pm2 stop azlibrary_webclient
+$ pm2 restart azlibrary_webclient
 ```
