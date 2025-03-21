@@ -984,7 +984,7 @@
 						console.log(event.target.id);
 						console.log("this.mode = " + this.mode);
 						console.log(this.metadata)
-						if (!this.metadata.collection_group.name) {
+						if (this.mode !== "Remove" && !this.metadata.collection_group.name) {
 							this.cgError = "Collection group is required."
 							return;
 						} 
@@ -1004,6 +1004,7 @@
 						} else if (this.mode === "Remove") {
 							console.log("removing");
 						}
+						console.log("Hi there");
 						
 						const token = this.token;
 
