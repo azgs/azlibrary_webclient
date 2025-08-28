@@ -827,6 +827,7 @@
 						}).then(result => {
 							console.log(result);
 							this.metadata = JSON.parse(JSON.stringify(result.data.data.metadata));
+							this.metadata.journal = []
 							console.log("fetched metadata = ");console.log(this.metadata);
 							this.supersededCollections = this.metadata.identifiers.supersedes
 						});
@@ -960,7 +961,7 @@
 					},
 					onLoginSubmit(event) {
 						console.log("onLoginSubmit enter");
-						return axios.post(server + '/api/v1/users', {
+						return axios.post(server + '/api/v1/login', {
 							email: this.email,
 							password: this.password
 						}, {
