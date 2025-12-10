@@ -32,6 +32,18 @@ logger.debug("port = " + global.pp(global.args.port));
 
 const app = express();
 
+// Middleware to add the Deprecation header to all responses
+app.use((req, res, next) => {
+	res.setHeader('Deprecation', true);
+  
+	// Optionally, add a Link header to point to a replacement API
+	//res.setHeader('Link', '<https://api.example.com/v2/new-endpoint>; rel="successor-version"');
+  
+	// Continue to the next middleware or route handler
+	next();
+  });
+  
+
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 
