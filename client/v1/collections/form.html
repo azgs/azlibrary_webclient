@@ -175,7 +175,7 @@
 								<label for="authorSurname">Surname</label><br/>
 								<input  id="authorOrganization"  name="authorOrganization"  v-model="newAuthorOrganization" />
 								<label for="authorOrganization">Organization</label><br/>
-								<input type="button" value="Add author" @click="addAuthor($event)" :disabled="!newAuthorPerson && !newAuthorGivenname && !newAuthorSurname && !newAuthorOrganization"/>							
+								<input type="button" value="Add author" @click="addAuthor($event)" :disabled="!newAuthorPerson"/>							
 							</div>
 						</div>
 
